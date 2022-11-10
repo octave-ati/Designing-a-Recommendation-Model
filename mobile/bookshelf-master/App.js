@@ -3,44 +3,36 @@ import {
   StyleSheet,
   Text,
   View,
-  Picker,
   Button,
   Image,
   FlatList
 } from "react-native";
+import {Picker} from '@react-native-picker/picker';
 import config from "./config.json";
 import axios from "axios";
 
-import { Logs } from 'expo';
-
-Logs.enableExpoCliLogging();
 
 class App extends Component {
   state = {
     selectedUser: 0,
     step: 0,
-    recommendations: 1
+    recommendations: null
   };
 
   goToStep0 = async () => {
-    this.setState({ step: 0, recommendations: 1 });
+    this.setState({ step: 0, recommendations: null });
   };
 
-  goToStep1 = async () => {
-
-    await axios.get(config.API_URL).then(res => {
-      res.json()})
-    //const rec = await axios.get(config.API_URL);
-    // const options = {method: "GET"};
-    // var rec;
-
-    // fetch(config.API_URL,options)
-    // .then(data => {rec = data.recommendations;});
-
-    
-    this.setState({ step: 1});
+  goToStep1 = () => {
+    axios.get(config.API_URL)
+    .then(res => {
+      const rec = res.data.recommendations;
+      this.setState({step:1, recommendations: rec});
+    });
+    console.log(config.API_URL);
+    //const rec = [34, 32, 893, 1];
+    //this.setState({ step: 1, recommendations: rec });
   };
-
 
   render() {
     if (!config.API_URL) {
@@ -57,6 +49,7 @@ class App extends Component {
         </View>
       );
     }
+
     if (this.state.step === 1) {
       return (
         <View style={styles.container}>
@@ -78,6 +71,7 @@ class App extends Component {
         </View>
       );
     }
+
     return (
       <View style={styles.container}>
         <Image
@@ -86,8 +80,8 @@ class App extends Component {
         />
         <Text style={{ fontSize: 18, padding: 20, textAlign: "center" }}>
           Choisissez votre profil afin de recevoir des recommendations de
-          lecture personnalisées : {this.state.recommendations.toString()}
-          Quel est mon état : {this.state.step}
+          lecture personnalisées {this.state.recommendations}
+          Quel est mon état : {this.state.step.toString()}
         </Text>
         <Picker
           style={{ height: 200, width: "80%", margin: 30 }}
