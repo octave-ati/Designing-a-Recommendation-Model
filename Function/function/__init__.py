@@ -11,12 +11,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     user_id = int(req.params.get('user_id'))
 
     rec = recommander.hyb_article_rec(user_id)
-    
+
     logging.info("Recommandation : " + str(rec))
 
     return func.HttpResponse(
         json.dumps({
-            'recommendations': [user_id, 546, 454, 1213]
+            'recommendations': rec
             }),
         mimetype="application/json"
         );

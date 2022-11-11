@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-
+from dateutil.relativedelta import relativedelta
 import dill
 
 from collections import defaultdict
@@ -16,6 +16,8 @@ with open('function/Data/article_ref.pkl','rb') as file:
 	article_ref = dill.load(file)
 with open('function/Data/articles_categ.pkl','rb') as file:
     articles_categ = dill.load(file)
+with open('function/Data/article_info.pkl','rb') as file:
+    article_info = dill.load(file)
 
 
 
@@ -48,48 +50,65 @@ def compute_sim_score(article_id):
 def hyb_article_rec(user_id: int):
     subset = users.loc[users.user_id == user_id]
 
-    article_similarity_score = []
-    #Computing the similarity scores of each articles browsed by the users
-    for index, row in subset.iterrows():
-        #Finding the index of the articles in the cosine similarities matrix
-        article_index = article_ref.loc[article_ref.article_id==row['click_article_id']].index.values[0]
-        #Adding the compute_sim_score x times, with x being the number of user clicks on the article
-        article_similarity_score += row['clicks']*compute_sim_score(article_index)
-    
-    #Gathering results in a dataframe    
-    rec = pd.DataFrame(article_similarity_score,
-                       columns=['article_id','sim_score']).set_index('article_id')
-    
-    #Removing negative similarities to prevent penalization of uncorrelated articles, and aggregating by article_id
-    rec = rec.loc[rec.sim_score > 0].groupby('article_id').sum()
-    
-    #Removing articles already read by the user from dataframe
-    rec = rec.loc[~rec.index.isin(subset.click_article_id.unique())]
-    
-    #Merging our recommendations with article categories
-    rec = rec.merge(articles_categ, on='article_id', how='inner')
-    
-    #Finding 5 categories recommendations for our top user
-    categ_recom = findRecom(get_top_n(pred, n=5),5463)
-    
-    #If we get valid category predictions
-    if len(categ_recom) > 0:
-        cat = []
-        #Compute the score for each one with our custom scoring function
-        for i in range(len(categ_recom)):
-            cat.append({'category_id' :categ_recom[i], 'score':((8-i)/2)})
+    #If the user does not exist, return a sample of the top 10 most popular articles of the last 6 months
+    if len(subset) == 0:
 
-        cat = pd.DataFrame(cat)
-        
-        #Merging our category scores with our recommendations, giving a score of 1 to articles not belonging to the top5 categ
-        final = rec.merge(cat, on='category_id', how='left').fillna(1)
-        
-        #Calculating our final score by multiplying the similarity score and the category score
-        final['final_score'] = final['score']*final['sim_score']
-        
-        #Returning top 5 matches
-        return final.sort_values(by='final_score', ascending=False).head(5).article_id.to_list()
+        #today = dt.date.today()
+        #MUST BE CHANGED IN PRODUCTION, unable to use today because the dataset only goes until 2017
+        today = article_info.date.max() #Simulating that today is the last day of our dataset
+
+        months = today - relativedelta(months=6)
+
+        #Sampling 5 articles from the top 10 most read within the last 6 months
+        rec = article_info.loc[article_info.date > months].sort_values(
+            by='article_clicks', ascending=False).reset_index().head(10).sample(5).article_id.to_list()
+
+        return rec
 
     else:
-        #Returning top 5 matches based solely on embeddings
-        return rec.sort_values(by='sim_score', ascending=False).head(5).article_id.to_list()
+
+        article_similarity_score = []
+        #Computing the similarity scores of each articles browsed by the users
+        for index, row in subset.iterrows():
+            #Finding the index of the articles in the cosine similarities matrix
+            article_index = article_ref.loc[article_ref.article_id==row['click_article_id']].index.values[0]
+            #Adding the compute_sim_score x times, with x being the number of user clicks on the article
+            article_similarity_score += row['clicks']*compute_sim_score(article_index)
+        
+        #Gathering results in a dataframe    
+        rec = pd.DataFrame(article_similarity_score,
+                           columns=['article_id','sim_score']).set_index('article_id')
+        
+        #Removing negative similarities to prevent penalization of uncorrelated articles, and aggregating by article_id
+        rec = rec.loc[rec.sim_score > 0].groupby('article_id').sum()
+        
+        #Removing articles already read by the user from dataframe
+        rec = rec.loc[~rec.index.isin(subset.click_article_id.unique())]
+        
+        #Merging our recommendations with article categories
+        rec = rec.merge(articles_categ, on='article_id', how='inner')
+        
+        #Finding 5 categories recommendations for our top user
+        categ_recom = findRecom(get_top_n(pred, n=5),5463)
+        
+        #If we get valid category predictions
+        if len(categ_recom) > 0:
+            cat = []
+            #Compute the score for each one with our custom scoring function
+            for i in range(len(categ_recom)):
+                cat.append({'category_id' :categ_recom[i], 'score':((8-i)/2)})
+
+            cat = pd.DataFrame(cat)
+            
+            #Merging our category scores with our recommendations, giving a score of 1 to articles not belonging to the top5 categ
+            final = rec.merge(cat, on='category_id', how='left').fillna(1)
+            
+            #Calculating our final score by multiplying the similarity score and the category score
+            final['final_score'] = final['score']*final['sim_score']
+            
+            #Returning top 5 matches
+            return final.sort_values(by='final_score', ascending=False).head(5).article_id.to_list()
+
+        else:
+            #Returning top 5 matches based solely on embeddings
+            return rec.sort_values(by='sim_score', ascending=False).head(5).article_id.to_list()
