@@ -23,15 +23,11 @@ class App extends Component {
     this.setState({ step: 0, recommendations: null });
   };
 
-  goToStep1 = () => {
-    axios.get(config.API_URL)
-    .then(res => {
-      const rec = res.data.recommendations;
-      this.setState({step:1, recommendations: rec});
-    });
-    console.log(config.API_URL);
-    //const rec = [34, 32, 893, 1];
-    //this.setState({ step: 1, recommendations: rec });
+  goToStep1 = async () => {
+    const resp = await axios.post(config.API_URL, {}, {
+    params: {user_id: this.state.selectedUser}});
+
+    this.setState({step:1, recommendations: resp.data.recommendations});
   };
 
   render() {
