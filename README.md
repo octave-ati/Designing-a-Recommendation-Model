@@ -24,7 +24,7 @@ failed because of a lack of computing power.
 ## Screenshots
 
 ### Hybrid model flowchart
-![Hybrid Model](img/hybrid_model.png)
+![Hybrid Model](img/hybrid_model.PNG)
 
 #### Article Embeddings
 ![Embeddings](img/embeddings.png)
