@@ -1,5 +1,5 @@
 """Graph builder from pandas dataframes"""
-import pytorch as torch
+import torch
 from collections import namedtuple
 from pandas.api.types import is_numeric_dtype, is_categorical_dtype, is_categorical
 import dgl
