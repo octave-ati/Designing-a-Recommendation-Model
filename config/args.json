@@ -1,0 +1,15 @@
+{
+  "random_walk_length": 2,
+  "random_walk_restart_prob": 0.5,
+  "num_random_walks": 10,
+  "num_neighbors": 3,
+  "num_layers": 2,
+  "hidden_dims": 8,
+  "batch_size": 32,
+  "device": "cuda:0",
+  "num_epochs": 50,
+  "batches_per_epoch": 20000,
+  "num_workers": 0,
+  "lr": 3e-5,
+  "k": 10
+}
